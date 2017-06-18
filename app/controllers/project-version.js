@@ -6,6 +6,22 @@ import FilterParams from '../mixins/filter-params';
 
 const { Controller, computed, A, inject: {service} } = Ember;
 
+const getRelationshipIDs = function(relationshipName) {
+  return computed('model', function() {
+    const classes = this.get('model').hasMany(relationshipName);
+    const sorted = A(classes.ids()).sort();
+    return A(sorted).toArray().map(id => id.split('-').pop());
+  });
+};
+
+
+const getModuleRelationships = function(moduleType) {
+  return computed('model', function() {
+    const versionId = this.get('model.id');
+    this.getModuleRelationships(versionId, moduleType);
+  });
+};
+
 export default Controller.extend(FilterParams, {
 
   filterData: service(),
@@ -14,43 +30,21 @@ export default Controller.extend(FilterParams, {
 
   showPrivateClasses: computed.alias('filterData.sideNav.showPrivate'),
 
-  classesIDs: computed('model', function() {
-    return this.getRelationshipIDs('classes');
-  }),
+  classesIDs:  getRelationshipIDs('classes'),
+  publicClassesIDs:  getRelationshipIDs('public-classes'),
+  namespaceIDs:  getRelationshipIDs('namespaces'),
+  publicNamespaceIDs:  getRelationshipIDs('public-namespaces'),
 
-  publicClassesIDs: computed('model', function() {
-    return this.getRelationshipIDs('public-classes');
-  }),
-
-  namespaceIDs: computed('model', function() {
-    return this.getRelationshipIDs('namespaces');
-  }),
-
-  publicNamespaceIDs: computed('model', function() {
-    return this.getRelationshipIDs('public-namespaces');
-  }),
-
-  moduleIDs: computed('model', function() {
-    return this.getModuleRelationships(this.get('model.id'), 'modules');
-  }),
-
-  publicModuleIDs: computed('model', function() {
-    return this.getModuleRelationships(this.get('model.id'), 'public-modules');
-  }),
-
-  getModuleRelationships(versionId, moduleType) {
-    let relations = this.getRelations(moduleType);
-    return relations.map(id => id.substring(versionId.length + 1))
-  },
+  moduleIDs: getModuleRelationships('modules'),
+  publicModuleIDs: getModuleRelationships('public-modules'),
 
   getRelations(relationship) {
     return this.get('model').hasMany(relationship).ids().sort();
   },
 
-  getRelationshipIDs(relationship) {
-    const classes = this.get('model').hasMany(relationship);
-    const sorted = A(classes.ids()).sort();
-    return A(sorted).toArray().map(id => id.split('-').pop());
+  getModuleRelationships(versionId, moduleType) {
+    let relations = this.getRelations(moduleType);
+    return relations.map(id => id.substring(versionId.length + 1))
   },
 
   shownClassesIDs: computed('showPrivateClasses', 'classesIDs', 'publicClassesIDs', function() {
